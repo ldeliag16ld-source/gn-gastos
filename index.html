@@ -256,7 +256,7 @@
       <div class="field">
         <label>Ticket / Justificante</label>
         <div class="ticket-area" id="ticketArea">
-          <input type="file" id="ticketFile" accept="image/*" capture="environment" onchange="handleTicketFile(event)">
+          <input type="file" id="ticketFile" accept="image/*" onchange="handleTicketFile(event)">
           <div id="ticketPlaceholder">
             <div class="ticket-icon">📷</div>
             <div class="ticket-text"><strong>Hacer foto o adjuntar</strong>Se sube automáticamente a Drive</div>
@@ -285,7 +285,7 @@
     <div class="modal-handle"></div>
     <h3>Enviar Hoja de Gastos</h3>
     <p>Excel con <strong id="modalCount">0</strong> gastos · Total: <strong id="modalTotal"></strong></p>
-    <div class="email-box">luigi.delia@grossonapoletano.com</div>
+    <div class="email-box"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="610d140806084f05040d08002106130e12120e0f00110e0d0415000f0e4f020e0c">[email&#160;protected]</a></div>
     <p style="font-size:11px;margin-bottom:0;color:var(--text-dim)">Asunto: Hoja de Gastos – <span id="modalPeriodo"></span></p>
     <div class="modal-actions">
       <button class="modal-btn cancel" onclick="closeSendModal()">Cancelar</button>
@@ -296,7 +296,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 const CLIENT_ID = '907061196639-b7ruu81544bvofaa0ufouocoit8h3q6j.apps.googleusercontent.com';
 const DRIVE_FOLDER_ID = '1ACnw0mB3PMrPMdck1_w2hsKc-s4AROy_';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send';
@@ -576,11 +576,3 @@ function formatEuro(n) { return new Intl.NumberFormat('es-ES',{style:'currency',
 function formatFecha(s) { if(!s)return''; const[y,m,d]=s.split('-'); return`${d}/${m}/${y}`; }
 function showToast(msg,type='') {
   const t=document.getElementById('toast');
-  t.textContent=msg; t.className=`toast show ${type}`;
-  setTimeout(()=>t.className='toast',3200);
-}
-
-document.getElementById('sendModal').addEventListener('click',function(e){if(e.target===this)closeSendModal();});
-</script>
-</body>
-</html>
