@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>GN Gastos · Luigi Delia</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --gold: #B8963B;
+    --gold-light: #D4AF5A;
+    --gold-dim: rgba(184,150,59,0.15);
+    --red: #C44536;
+    --dark: #111110;
+    --dark2: #1A1A18;
+    --dark3: #242422;
+    --dark4: #2E2E2B;
+    --cream: #EDE8E0;
+    --cream-dim: rgba(237,232,224,0.6);
+    --text: #EDE8E0;
+    --text-dim: rgba(237,232,224,0.45);
+    --border: rgba(184,150,59,0.2);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 120px;
+  }
+
+  .header {
+    background: var(--dark2);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 20px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--gold); }
+  .logo span { color: var(--cream-dim); font-weight: 400; font-size: 13px; display: block; font-family: 'DM Sans', sans-serif; margin-top: 1px; }
+  .total-badge { background: var(--gold-dim); border: 1px solid var(--gold); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 600; color: var(--gold-light); }
+
+  .auth-banner { margin: 16px; background: var(--dark3); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: border-color 0.2s; }
+  .auth-banner:hover { border-color: var(--gold); }
+  .auth-banner.connected { border-color: #4CAF50; }
+  .auth-icon { font-size: 22px; }
+  .auth-text { flex: 1; }
+  .auth-text strong { display: block; font-size: 13px; font-weight: 600; }
+  .auth-text small { font-size: 11px; color: var(--text-dim); }
+  .auth-btn { background: var(--gold); color: var(--dark); border: none; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .auth-btn.ok { background: #4CAF50; color: white; }
+
+  .section { margin: 0 16px 16px; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 11px; font-weight: 600; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+
+  .form-card { background: var(--dark2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 10px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+  .field input, .field select { background: var(--dark3); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 12px; outline: none; transition: border-color 0.2s; appearance: none; -webkit-appearance: none; width: 100%; }
+  .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23B8963B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+  .field input:focus, .field select:focus { border-color: var(--gold); }
+  .field input::placeholder { color: var(--text-dim); }
+  select option { background: var(--dark3); color: var(--text); }
+
+  .ticket-area { background: var(--dark3); border: 1.5px dashed var(--border); border-radius: var(--radius-sm); padding: 16px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; overflow: hidden; }
+  .ticket-area:hover { border-color: var(--gold); }
+  .ticket-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .ticket-icon { font-size: 28px; margin-bottom: 6px; }
+  .ticket-text { font-size: 12px; color: var(--text-dim); }
+  .ticket-text strong { color: var(--gold); display: block; font-size: 13px; margin-bottom: 2px; }
+  .ticket-preview { width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px; margin-top: 8px; display: none; }
+  .ticket-status { margin-top: 8px; font-size: 11px; color: var(--text-dim); display: none; }
+  .ticket-status.uploading { color: var(--gold); display: block; }
+  .ticket-status.done { color: #4CAF50; display: block; }
+  .ticket-status.error { color: var(--red); display: block; }
+
+  .btn-add { width: 100%; background: var(--gold); color: var(--dark); border: none; border-radius: var(--radius-sm); padding: 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 14px; transition: background 0.2s; }
+  .btn-add:active { opacity: 0.85; }
+  .btn-add:hover { background: var(--gold-light); }
+
+  .gastos-list { display: flex; flex-direction: column; gap: 8px; }
+  .gasto-item { background: var(--dark2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: center; gap: 12px; animation: slideIn 0.25s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .gasto-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+  .gasto-dot.dieta { background: #4CAF50; }
+  .gasto-dot.km { background: #2196F3; }
+  .gasto-info { flex: 1; min-width: 0; }
+  .gasto-desc { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gasto-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .gasto-right { text-align: right; flex-shrink: 0; }
+  .gasto-importe { font-size: 15px; font-weight: 600; color: var(--gold-light); }
+  .gasto-fecha { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+  .btn-delete { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; padding: 4px; flex-shrink: 0; }
+  .btn-delete:hover { color: var(--red); }
+
+  .empty-state { text-align: center; padding: 30px 20px; color: var(--text-dim); font-size: 13px; background: var(--dark2); border: 1px dashed var(--border); border-radius: var(--radius); }
+  .empty-state span { font-size: 28px; display: block; margin-bottom: 8px; }
+
+  .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--dark2); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; gap: 10px; z-index: 100; }
+  .btn-excel { flex: 1; background: var(--dark3); color: var(--gold); border: 1px solid var(--gold); border-radius: var(--radius-sm); padding: 13px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-send { flex: 1; background: var(--gold); color: var(--dark); border: none; border-radius: var(--radius-sm); padding: 13px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn-send:disabled, .btn-excel:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .meta-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .meta-field { flex: 1; background: var(--dark3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .meta-field label { display: block; font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .meta-field input, .meta-field select { background: none; border: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; outline: none; width: 100%; appearance: none; -webkit-appearance: none; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: flex-end; backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--dark2); border-top: 1px solid var(--border); border-radius: 20px 20px 0 0; padding: 24px 20px 40px; width: 100%; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal h3 { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--gold); margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .modal-btn { flex: 1; padding: 13px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+  .modal-btn.cancel { background: var(--dark3); color: var(--text-dim); }
+  .modal-btn.confirm { background: var(--gold); color: var(--dark); }
+  .email-box { background: var(--dark3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 14px; font-weight: 500; color: var(--gold-light); margin-bottom: 8px; }
+
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark3); border: 1px solid var(--border); border-radius: 20px; padding: 10px 20px; font-size: 13px; z-index: 300; opacity: 0; transition: all 0.3s; white-space: nowrap; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: #4CAF50; color: #4CAF50; }
+  .toast.error { border-color: var(--red); color: var(--red); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">GN · Gastos<span>Luigi Delia · GN1122</span></div>
+    <div class="total-badge" id="totalBadge">0,00 €</div>
+  </div>
+</div>
+
+<div class="auth-banner" id="authBanner" onclick="handleAuth()">
+  <div class="auth-icon">🔐</div>
+  <div class="auth-text">
+    <strong id="authTitle">Conectar Google</strong>
+    <small id="authSubtitle">Drive para tickets · Gmail para envío</small>
+  </div>
+  <button class="auth-btn" id="authBtn">Conectar</button>
+</div>
+
+<div class="section">
+  <div class="section-title">Período</div>
+  <div class="meta-row">
+    <div class="meta-field">
+      <label>Mes</label>
+      <select id="metaMes">
+        <option>ENERO</option><option>FEBRERO</option><option selected>MARZO</option>
+        <option>ABRIL</option><option>MAYO</option><option>JUNIO</option>
+        <option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option>
+        <option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option>
+      </select>
+    </div>
+    <div class="meta-field">
+      <label>Año</label>
+      <input type="number" id="metaAnio" value="2026">
+    </div>
+    <div class="meta-field">
+      <label>Quincena</label>
+      <select id="metaQuincena">
+        <option value="1">1ª (1–15)</option>
+        <option value="2">2ª (16–31)</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Nuevo Gasto</div>
+  <div class="form-card">
+    <div class="form-row">
+      <div class="field">
+        <label>Fecha</label>
+        <input type="date" id="fFecha">
+      </div>
+      <div class="field">
+        <label>Tipo de Gasto</label>
+        <select id="fTipo">
+          <option value="">— Tipo —</option>
+          <option>GASTO ADICIONAL</option>
+          <option>DIETA</option>
+          <option>KM</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="field">
+        <label>Descripción</label>
+        <input type="text" id="fDesc" placeholder="ej. Taxi al local, Manutención...">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Importe (€)</label>
+        <input type="number" id="fImporte" placeholder="0.00" step="0.01" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>KM (si aplica)</label>
+        <input type="number" id="fKm" placeholder="—" step="0.1" inputmode="decimal">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Imputación</label>
+        <select id="fImputacion">
+          <option value="">— Dpto/Local —</option>
+          <option>SC</option>
+          <option>OPS</option>
+          <option>PRODUCT</option>
+          <option>LAB-ES-B-CA</option>
+          <option>GN-ES-M-VA</option>
+          <option>GN-ES-M-MAD</option>
+          <option>GN-ES-B-BCN</option>
+          <option>GN-ES-V-VAL</option>
+          <option>GN-ES-S-SEV</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Dimensión</label>
+        <select id="fDimension">
+          <option value="">— Dimensión —</option>
+          <option>Other Restaurant Cost</option>
+          <option>Food &amp; Beverage</option>
+          <option>Labour</option>
+          <option>Marketing</option>
+          <option>G&amp;A</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Gasto de Inicio</label>
+        <select id="fGastoInicio"><option>NO</option><option>SÍ</option></select>
+      </div>
+      <div class="field">
+        <label>Concepto</label>
+        <select id="fConcepto"><option>NO</option><option>SÍ</option></select>
+      </div>
+    </div>
+    <div class="form-row full" style="margin-bottom:0">
+      <div class="field">
+        <label>Ticket / Justificante</label>
+        <!-- Hidden inputs: one for camera, one for gallery -->
+        <input type="file" id="ticketFileCamera" accept="image/*" capture="environment" onchange="handleTicketFile(event)" style="display:none">
+        <input type="file" id="ticketFileGallery" accept="image/*" onchange="handleTicketFile(event)" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <button type="button" onclick="document.getElementById('ticketFileCamera').click()" style="background:var(--dark3);border:1.5px dashed var(--border);border-radius:8px;padding:14px 8px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <span style="font-size:24px;">📷</span>Cámara
+          </button>
+          <button type="button" onclick="document.getElementById('ticketFileGallery').click()" style="background:var(--dark3);border:1.5px dashed var(--border);border-radius:8px;padding:14px 8px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <span style="font-size:24px;">🖼️</span>Galería
+          </button>
+        </div>
+        <img id="ticketPreview" class="ticket-preview">
+        <div class="ticket-status" id="ticketStatus"></div>
+      </div>
+    </div>
+    <button class="btn-add" onclick="addGasto()">＋ Añadir Gasto</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Gastos Añadidos <span id="countBadge" style="color:var(--text-dim)"></span></div>
+  <div id="gastosList"></div>
+</div>
+
+<div class="bottom-bar">
+  <button class="btn-excel" id="btnExcel" onclick="generarExcel(false)" disabled>⬇ Excel</button>
+  <button class="btn-send" id="btnSend" onclick="showSendModal()" disabled>✉ Enviar</button>
+</div>
+
+<div class="modal-overlay" id="sendModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Enviar Hoja de Gastos</h3>
+    <p>Excel con <strong id="modalCount">0</strong> gastos · Total: <strong id="modalTotal"></strong></p>
+    <div class="email-box"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="610d140806084f05040d08002106130e12120e0f00110e0d0415000f0e4f020e0c">[email&#160;protected]</a></div>
+    <p style="font-size:11px;margin-bottom:0;color:var(--text-dim)">Asunto: Hoja de Gastos – <span id="modalPeriodo"></span></p>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeSendModal()">Cancelar</button>
+      <button class="modal-btn confirm" id="btnConfirmSend" onclick="enviarCorreo()">Enviar ✉</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+const CLIENT_ID = '907061196639-b7ruu81544bvofaa0ufouocoit8h3q6j.apps.googleusercontent.com';
+const DRIVE_FOLDER_ID = '1ACnw0mB3PMrPMdck1_w2hsKc-s4AROy_';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send';
+const RECIPIENT = 'luigi.delia@grossonapoletano.com';
+
+let gastos = [];
+let accessToken = null;
+let pendingTicketFile = null;
+let tokenClient = null;
+
+window.onload = () => {
+  const today = new Date();
+  document.getElementById('fFecha').value = today.toISOString().split('T')[0];
+  document.getElementById('metaQuincena').value = today.getDate() <= 15 ? '1' : '2';
+  const saved = localStorage.getItem('gn_gastos');
+  if (saved) gastos = JSON.parse(saved);
+  renderGastos();
+};
+
+window.handleAuth = function handleAuth() {
+  if (accessToken) {
+    if (confirm('Desconectar cuenta de Google?')) {
+      accessToken = null;
+      updateAuthUI(false);
+    }
+    return;
+  }
+  if (typeof google === 'undefined') {
+    showToast('Cargando Google...', 'error');
+    return;
+  }
+  if (!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (resp) => {
+        if (resp.error) { showToast('Error: ' + resp.error, 'error'); return; }
+        accessToken = resp.access_token;
+        updateAuthUI(true);
+        showToast('Google conectado', 'success');
+        if (pendingTicketFile) { uploadToDrive(pendingTicketFile); pendingTicketFile = null; }
+      }
+    });
+  }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+window.updateAuthUI = function updateAuthUI(connected) {
+  const banner = document.getElementById('authBanner');
+  const title = document.getElementById('authTitle');
+  const subtitle = document.getElementById('authSubtitle');
+  const btn = document.getElementById('authBtn');
+  if (!banner) return;
+  if (connected) {
+    banner.className = 'auth-banner connected';
+    title.textContent = 'Google conectado';
+    subtitle.textContent = 'Drive + Gmail activos';
+    btn.textContent = 'Conectado';
+    btn.className = 'auth-btn ok';
+  } else {
+    banner.className = 'auth-banner';
+    title.textContent = 'Conectar Google';
+    subtitle.textContent = 'Drive para tickets · Gmail para envio';
+    btn.textContent = 'Conectar';
+    btn.className = 'auth-btn';
+  }
+}
+
+window.handleTicketFile = function handleTicketFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const p = document.getElementById('ticketPreview');
+    p.src = ev.target.result; p.style.display = 'block';
+    document.getElementById('ticketPlaceholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+
+  if (accessToken) {
+    uploadToDrive(file);
+  } else {
+    pendingTicketFile = file;
+    setTicketStatus('uploading', '⏳ Conecta Google para subir el ticket...');
+    tokenClient && tokenClient.requestAccessToken();
+  }
+}
+
+async function uploadToDrive(file) {
+  setTicketStatus('uploading', '⬆ Subiendo a Drive...');
+  const metadata = { name: `ticket_${Date.now()}_${file.name}`, parents: [DRIVE_FOLDER_ID] };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', file);
+  try {
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+      method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    pendingTicketLink = data.webViewLink;
+    setTicketStatus('done', '✓ Ticket subido · link copiado al Excel');
+    showToast('Ticket subido a Drive ✓', 'success');
+  } catch (err) {
+    setTicketStatus('error', '✗ Error al subir. Añade el link manualmente.');
+    console.error(err);
+  }
+}
+
+function setTicketStatus(type, msg) {
+  const el = document.getElementById('ticketStatus');
+  el.className = `ticket-status ${type}`; el.textContent = msg;
+}
+
+window.addGasto = function addGasto() {
+  const fecha = document.getElementById('fFecha').value;
+  const tipo = document.getElementById('fTipo').value;
+  const desc = document.getElementById('fDesc').value.trim();
+  const importe = parseFloat(document.getElementById('fImporte').value);
+  const km = document.getElementById('fKm').value;
+
+  if (!fecha) { showToast('Indica la fecha', 'error'); return; }
+  if (!tipo) { showToast('Selecciona el tipo de gasto', 'error'); return; }
+  if (!desc) { showToast('Añade una descripción', 'error'); return; }
+  if (!importe || isNaN(importe)) { showToast('Indica el importe', 'error'); return; }
+
+  gastos.push({
+    fecha, tipo, desc, importe, km: km || '',
+    imputacion: document.getElementById('fImputacion').value,
+    dimension: document.getElementById('fDimension').value,
+    gastoInicio: document.getElementById('fGastoInicio').value,
+    concepto: document.getElementById('fConcepto').value,
+    ticketLink: pendingTicketLink || ''
+  });
+
+  ['fDesc','fImporte','fKm'].forEach(id => document.getElementById(id).value = '');
+  ['fTipo','fImputacion','fDimension'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fGastoInicio').value = 'NO';
+  document.getElementById('fConcepto').value = 'NO';
+  document.getElementById('ticketPreview').style.display = 'none';
+  document.getElementById('ticketPlaceholder').style.display = 'block';
+  const cam = document.getElementById('ticketFileCamera');
+  const gal = document.getElementById('ticketFileGallery');
+  if (cam) cam.value = '';
+  if (gal) gal.value = '';
+  document.getElementById('ticketStatus').className = 'ticket-status';
+  pendingTicketLink = null;
+
+  renderGastos();
+  showToast('Gasto añadido ✓', 'success');
+}
+
+window.deleteGasto = function deleteGasto(idx) { gastos.splice(idx, 1); renderGastos(); }
+
+window.renderGastos = function renderGastos() {
+  const list = document.getElementById('gastosList');
+  const total = gastos.reduce((s, g) => s + g.importe, 0);
+  document.getElementById('totalBadge').textContent = formatEuro(total);
+  document.getElementById('countBadge').textContent = gastos.length > 0 ? `(${gastos.length})` : '';
+  const has = gastos.length > 0;
+  document.getElementById('btnExcel').disabled = !has;
+  document.getElementById('btnSend').disabled = !has;
+
+  if (!has) {
+    list.innerHTML = `<div class="empty-state"><span>🧾</span>Aún no has añadido gastos.</div>`;
+    return;
+  }
+  list.innerHTML = gastos.map((g, i) => `
+    <div class="gasto-item">
+      <div class="gasto-dot ${g.tipo==='DIETA'?'dieta':g.tipo==='KM'?'km':''}"></div>
+      <div class="gasto-info">
+        <div class="gasto-desc">${g.desc}</div>
+        <div class="gasto-meta">${g.tipo}${g.imputacion?' · '+g.imputacion:''}${g.ticketLink?' · 📎':''}</div>
+      </div>
+      <div class="gasto-right">
+        <div class="gasto-importe">${formatEuro(g.importe)}</div>
+        <div class="gasto-fecha">${formatFecha(g.fecha)}</div>
+      </div>
+      <button class="btn-delete" onclick="deleteGasto(${i})">✕</button>
+    </div>`).join('');
+}
+
+window.generarExcel = function generarExcel(returnBase64 = false) {
+  const mes = document.getElementById('metaMes').value;
+  const anio = document.getElementById('metaAnio').value;
+  const total = gastos.reduce((s, g) => s + g.importe, 0);
+
+  const rows = [
+    ['HOJA DE GASTOS','','','','','','','','','','','','',''],
+    ['','','','','','','','','','','','','',''],
+    ['CÓDIGO GN','','','','GN1122','','','','','','','','',''],
+    ['NOMBRE Y APELLIDOS','','','','LUIGI DELIA','','','','','','','','',''],
+    ['AÑO','','','',anio,'','','','','','','','',''],
+    ['MES ','','','',mes,'','','','','','','','',''],
+    ['','','','','','','','','','','','','',''],
+    ['GASTOS','','','','','','','','','','','','',''],
+    ['','','','','','','','','','','','','',''],
+    ['','','','','','','','','','','','','',''],
+    ['FECHA','TIPO DE GASTO','','','','','DESCRIPCIÓN','KM','IMPORTE','IMPUTACIÓN DEPARTAMENTO/ LOCAL','DIMENSIÓN','GASTO DE INICIO','CONCEPTO','LINK TICKET'],
+  ];
+
+  gastos.forEach(g => rows.push([
+    g.fecha, g.tipo,'','','','', g.desc, g.km||'', g.importe,
+    g.imputacion||'', g.dimension||'', g.gastoInicio||'NO', g.concepto||'NO', g.ticketLink||''
+  ]));
+
+  const empty = Math.max(0, 23 - gastos.length);
+  for (let i = 0; i < empty; i++) rows.push(['','','','','','','','','','','','','','']);
+  rows.push(['','TOTAL HOJA DE GASTOS','','','','','','',total,'','','','','']);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:14},{wch:18},{wch:6},{wch:6},{wch:8},{wch:6},{wch:30},{wch:8},{wch:10},{wch:28},{wch:22},{wch:16},{wch:12},{wch:50}];
+  ws['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:5}},{s:{r:2,c:0},e:{r:2,c:3}},{s:{r:3,c:0},e:{r:3,c:3}},
+    {s:{r:4,c:0},e:{r:4,c:3}},{s:{r:5,c:0},e:{r:5,c:3}}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `${mes} ${anio}`.substring(0,31));
+
+  if (returnBase64) return XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+
+  const mesL = mes.charAt(0) + mes.slice(1).toLowerCase();
+  XLSX.writeFile(wb, `SC_LuigiDelia_${mesL}${anio}.xlsx`);
+  showToast('Excel descargado ✓', 'success');
+}
+
+window.showSendModal = function showSendModal() {
+  const mes = document.getElementById('metaMes').value;
+  const anio = document.getElementById('metaAnio').value;
+  const q = document.getElementById('metaQuincena').value==='1'?'1ª quincena':'2ª quincena';
+  const total = gastos.reduce((s,g)=>s+g.importe,0);
+  document.getElementById('modalCount').textContent = gastos.length;
+  document.getElementById('modalTotal').textContent = formatEuro(total);
+  document.getElementById('modalPeriodo').textContent = `${mes} ${anio} · ${q}`;
+  document.getElementById('sendModal').classList.add('open');
+}
+
+window.closeSendModal = function closeSendModal() { document.getElementById('sendModal').classList.remove('open'); }
+
+async window.enviarCorreo = function enviarCorreo() {
+  if (!accessToken) {
+    showToast('Conecta Google primero', 'error');
+    closeSendModal();
+    tokenClient && tokenClient.requestAccessToken();
+    return;
+  }
+  const btn = document.getElementById('btnConfirmSend');
+  btn.textContent = 'Enviando...'; btn.disabled = true;
+
+  const mes = document.getElementById('metaMes').value;
+  const anio = document.getElementById('metaAnio').value;
+  const q = document.getElementById('metaQuincena').value==='1'?'1ª quincena':'2ª quincena';
+  const total = gastos.reduce((s,g)=>s+g.importe,0);
+  const mesL = mes.charAt(0)+mes.slice(1).toLowerCase();
+  const filename = `SC_LuigiDelia_${mesL}${anio}.xlsx`;
+  const b64 = generarExcel(true);
+
+  const subject = `Hoja de Gastos – ${mes} ${anio} · ${q}`;
+  const body = `Hola,\n\nAdjunto la hoja de gastos de ${mes} ${anio} (${q}).\n\nTotal: ${formatEuro(total)}\nNúmero de gastos: ${gastos.length}\n\nSaludos,\nLuigi Delia · GN1122`;
+  const bnd = 'bnd_' + Date.now();
+
+  const raw = [
+    `MIME-Version: 1.0`,
+    `To: ${RECIPIENT}`,
+    `Subject: ${subject}`,
+    `Content-Type: multipart/mixed; boundary="${bnd}"`,``,
+    `--${bnd}`,
+    `Content-Type: text/plain; charset="UTF-8"`,``,
+    body,``,
+    `--${bnd}`,
+    `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
+    `Content-Transfer-Encoding: base64`,
+    `Content-Disposition: attachment; filename="${filename}"`,``,
+    b64,``,
+    `--${bnd}--`
+  ].join('\r\n');
+
+  const encoded = btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+
+  try {
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw: encoded })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message||'Error'); }
+    closeSendModal();
+    showToast('Correo enviado ✓', 'success');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.textContent = 'Enviar ✉'; btn.disabled = false;
+  }
+}
+
+function formatEuro(n) { return new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(n); }
+function formatFecha(s) { if(!s)return''; const[y,m,d]=s.split('-'); return`${d}/${m}/${y}`; }
+window.showToast = function showToast(msg,type='') {
+  const t=document.getElementById('toast');
