@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GN Gastos</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --gold: #B8963B;
+  --gold-light: #D4AF5A;
+  --gold-dim: rgba(184,150,59,0.15);
+  --gold-border: rgba(184,150,59,0.25);
+  --red: #C44536;
+  --green: #5A9E6F;
+  --dark: #0E0E0D;
+  --dark2: #161614;
+  --dark3: #1E1E1B;
+  --dark4: #272724;
+  --cream: #EDE8E0;
+  --cream2: rgba(237,232,224,0.7);
+  --cream3: rgba(237,232,224,0.35);
+  --r: 12px;
+  --rs: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--dark);
+  color: var(--cream);
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+/* ── HEADER ── */
+.hdr {
+  background: var(--dark2);
+  border-bottom: 1px solid var(--gold-border);
+  padding: 14px 18px 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hdr-left { display: flex; align-items: center; gap: 10px; }
+.hdr-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 19px;
+  color: var(--gold);
+  line-height: 1;
+}
+.hdr-sub { font-size: 11px; color: var(--cream3); margin-top: 2px; letter-spacing: 0.3px; }
+.hdr-pill {
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-light);
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  background: var(--dark2);
+  border-bottom: 1px solid var(--gold-border);
+  flex-shrink: 0;
+}
+.tab {
+  flex: 1;
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cream3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+  user-select: none;
+}
+.tab .ti { font-size: 16px; display: block; margin-bottom: 2px; }
+.tab.on { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── VIEWS ── */
+.views { flex: 1; overflow: hidden; position: relative; }
+.view {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 16px;
+  display: none;
+  -webkit-overflow-scrolling: touch;
+}
+.view.on { display: block; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--dark2);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+/* ── FIELDS ── */
+.field { margin-bottom: 12px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--cream3);
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: var(--dark3);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--rs);
+  padding: 12px 13px;
+  color: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.field input:focus, .field select:focus { border-color: var(--gold); }
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23B8963B'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  padding-right: 34px;
+}
+.field select option { background: var(--dark3); }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── TICKET AREA ── */
+.ticket-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.ticket-btn {
+  background: var(--dark3);
+  border: 1.5px dashed var(--gold-border);
+  border-radius: var(--rs);
+  padding: 16px 8px;
+  color: var(--cream2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.ticket-btn:active { border-color: var(--gold); background: var(--gold-dim); }
+.ticket-btn .ti { font-size: 22px; }
+.ticket-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.ticket-preview {
+  width: 100%;
+  max-height: 130px;
+  object-fit: cover;
+  border-radius: var(--rs);
+  display: none;
+  margin-bottom: 8px;
+}
+.ticket-status {
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: var(--rs);
+  display: none;
+  margin-bottom: 8px;
+}
+.ticket-status.uploading { background: var(--gold-dim); color: var(--gold); display: block; }
+.ticket-status.done { background: rgba(90,158,111,0.15); color: var(--green); display: block; }
+.ticket-status.error { background: rgba(196,69,54,0.15); color: var(--red); display: block; }
+.link-manual { font-size: 12px; color: var(--cream3); margin-top: 6px; }
+
+/* ── BUTTONS ── */
+.btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--rs);
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.2px;
+}
+.btn:active { transform: scale(0.97); }
+.btn-gold { background: var(--gold); color: var(--dark); }
+.btn-gold:active { background: var(--gold-light); }
+.btn-outline { background: transparent; color: var(--gold); border: 1px solid var(--gold-border); }
+.btn-outline:active { background: var(--gold-dim); }
+.btn-danger { background: rgba(196,69,54,0.12); color: #E07070; border: 1px solid rgba(196,69,54,0.25); }
+.btn + .btn { margin-top: 10px; }
+.btn .spin {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-top-color: var(--dark);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── GASTO ITEMS ── */
+.gasto-item {
+  background: var(--dark2);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--r);
+  padding: 13px 14px;
+  margin-bottom: 9px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: fadeUp 0.25s ease;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.gi-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: var(--gold-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.gi-body { flex: 1; min-width: 0; }
+.gi-desc { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gi-meta { font-size: 11px; color: var(--cream3); margin-top: 2px; }
+.gi-tag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tag-ga { background: var(--gold-dim); color: var(--gold); }
+.tag-d { background: rgba(90,158,111,0.15); color: var(--green); }
+.tag-km { background: rgba(100,149,237,0.15); color: #7AAAEE; }
+.gi-right { text-align: right; flex-shrink: 0; }
+.gi-amount { font-size: 16px; font-weight: 600; }
+.gi-del { font-size: 16px; color: var(--cream3); margin-top: 4px; cursor: pointer; transition: color 0.2s; }
+.gi-del:active { color: var(--red); }
+
+/* ── EMPTY STATE ── */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--cream3);
+}
+.empty .ei { font-size: 44px; margin-bottom: 14px; opacity: 0.35; }
+.empty .et { font-size: 15px; font-weight: 500; margin-bottom: 6px; color: var(--cream2); }
+.empty .es { font-size: 12px; }
+
+/* ── RESUMEN GRID ── */
+.rg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.rc {
+  background: var(--dark2);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--r);
+  padding: 14px;
+}
+.rc.full { grid-column: 1/-1; }
+.rc .rl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--cream3); margin-bottom: 5px; }
+.rc .rv { font-size: 20px; font-weight: 600; }
+.rc .rv.gold { color: var(--gold); }
+
+/* ── PERIODO BADGE ── */
+.periodo {
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--rs);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--gold);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--dark4);
+  border: 1px solid var(--gold-border);
+  border-radius: 30px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.25s;
+  z-index: 999;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.ok { color: var(--green); border-color: rgba(90,158,111,0.3); }
+#toast.err { color: #E07070; border-color: rgba(196,69,54,0.3); }
+
+/* ── MODAL ── */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.modal-bg.on { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--dark2);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--r) var(--r) 0 0;
+  padding: 24px 20px 36px;
+  width: 100%;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+}
+.modal-bg.on .modal { transform: translateY(0); }
+.modal h3 { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--gold); margin-bottom: 6px; }
+.modal p { font-size: 13px; color: var(--cream2); margin-bottom: 20px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div>
+      <div class="hdr-logo">GN Gastos</div>
+      <div class="hdr-sub">Luigi Delia · GN1122</div>
+    </div>
+  </div>
+  <div class="hdr-pill" id="hdrTotal">0,00 €</div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="goTab(0)"><span class="ti">➕</span>Nuevo</div>
+  <div class="tab" onclick="goTab(1)"><span class="ti">📋</span>Gastos</div>
+  <div class="tab" onclick="goTab(2)"><span class="ti">📤</span>Exportar</div>
+</div>
+
+<div class="views">
+
+  <!-- ── TAB NUEVO ── -->
+  <div class="view on" id="v0">
+
+    <div class="periodo">📅 <span id="periodoLabel"></span></div>
+
+    <div class="card">
+      <div class="card-title">Datos del gasto</div>
+      <div class="g2">
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="fFecha">
+        </div>
+        <div class="field">
+          <label>Importe €</label>
+          <input type="number" id="fImporte" placeholder="0.00" step="0.01" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label>Tipo de gasto</label>
+        <select id="fTipo" onchange="toggleKm()">
+          <option value="">— Seleccionar —</option>
+          <option value="GASTO ADICIONAL">Gasto Adicional</option>
+          <option value="DIETA">Dieta</option>
+          <option value="KM">Kilometraje</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Descripción</label>
+        <input type="text" id="fDesc" placeholder="Ej: Taxi aeropuerto">
+      </div>
+      <div class="field" id="kmWrap" style="display:none">
+        <label>Kilómetros</label>
+        <input type="number" id="fKm" placeholder="0" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Imputación</div>
+      <div class="field">
+        <label>Departamento / Local</label>
+        <select id="fImp">
+          <option value="">— Seleccionar —</option>
+          <option value="SC">SC · Supracentral</option>
+          <option value="OPS">OPS · Operaciones</option>
+          <option value="PRODUCT">PRODUCT</option>
+          <option value="LAB-ES-B-CA">LAB Barcelona</option>
+          <option value="LAB-ES-M-VA">LAB Valencia</option>
+          <option value="LAB-ES-M-MD">LAB Madrid</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Dimensión</label>
+        <select id="fDim">
+          <option value="">— Sin dimensión —</option>
+          <option value="Other Restaurant Cost">Other Restaurant Cost</option>
+          <option value="Food Cost">Food Cost</option>
+          <option value="Labour Cost">Labour Cost</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Training">Training</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Gasto de inicio</label>
+        <select id="fInicio">
+          <option value="NO">No</option>
+          <option value="SI">Sí</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Ticket / Justificante</div>
+      <div class="ticket-btns">
+        <div class="ticket-btn">
+          <input type="file" id="fileCamera" accept="image/*" capture="environment" onchange="handleFile(this)">
+          <span class="ti">📷</span>Cámara
+        </div>
+        <div class="ticket-btn">
+          <input type="file" id="fileGallery" accept="image/*" onchange="handleFile(this)">
+          <span class="ti">🖼️</span>Galería
+        </div>
+      </div>
+      <img id="ticketImg" class="ticket-preview">
+      <div id="ticketStatus" class="ticket-status"></div>
+      <div class="field">
+        <label>Link Drive <span class="link-manual">(se rellena automáticamente)</span></label>
+        <input type="url" id="fLink" placeholder="https://drive.google.com/...">
+      </div>
+    </div>
+
+    <button class="btn btn-gold" onclick="addGasto()">
+      ✚ Añadir gasto
+    </button>
+
+  </div>
+
+  <!-- ── TAB GASTOS ── -->
+  <div class="view" id="v1">
+    <div id="gastosList"></div>
+  </div>
+
+  <!-- ── TAB EXPORTAR ── -->
+  <div class="view" id="v2">
+
+    <div class="rg">
+      <div class="rc">
+        <div class="rl">Total</div>
+        <div class="rv gold" id="resTotal">0,00 €</div>
+      </div>
+      <div class="rc">
+        <div class="rl">Registros</div>
+        <div class="rv" id="resCount">0</div>
+      </div>
+      <div class="rc">
+        <div class="rl">Dietas</div>
+        <div class="rv" id="resDietas">0,00 €</div>
+      </div>
+      <div class="rc">
+        <div class="rl">Otros gastos</div>
+        <div class="rv" id="resOtros">0,00 €</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Periodo del informe</div>
+      <div class="g2">
+        <div class="field">
+          <label>Mes</label>
+          <select id="expMes">
+            <option value="ENERO">Enero</option>
+            <option value="FEBRERO">Febrero</option>
+            <option value="MARZO">Marzo</option>
+            <option value="ABRIL">Abril</option>
+            <option value="MAYO">Mayo</option>
+            <option value="JUNIO">Junio</option>
+            <option value="JULIO">Julio</option>
+            <option value="AGOSTO">Agosto</option>
+            <option value="SEPTIEMBRE">Septiembre</option>
+            <option value="OCTUBRE">Octubre</option>
+            <option value="NOVIEMBRE">Noviembre</option>
+            <option value="DICIEMBRE">Diciembre</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Año</label>
+          <input type="number" id="expAnio" value="2026" min="2024" max="2030">
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-gold" onclick="descargarExcel()">
+      📥 Descargar Excel
+    </button>
+    <button class="btn btn-outline" onclick="mostrarModalEnvio()">
+      ✉️ Enviar por correo
+    </button>
+    <button class="btn btn-danger" onclick="borrarTodo()">
+      🗑️ Borrar todos los gastos
+    </button>
+
+  </div>
+
+</div><!-- /views -->
+
+<!-- MODAL ENVÍO -->
+<div class="modal-bg" id="modalBg" onclick="cerrarModal(event)">
+  <div class="modal">
+    <h3>Enviar hoja de gastos</h3>
+    <p>Se enviará el Excel a <strong>luigi.delia@grossonapoletano.com</strong> con todos los gastos del periodo seleccionado.</p>
+    <button class="btn btn-gold" id="btnEnviar" onclick="enviarCorreo()">
+      <span class="spin" id="spinEnvio"></span>
+      <span id="lblEnviar">✉️ Enviar ahora</span>
+    </button>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="cerrarModal()">Cancelar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ──
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxS-WTxqNAFJxh87xNBoGkpPVnULse4xQBGFsFmjHOzU444u8hZC4zyU_-1Onx29rHvVw/exec';
+const RECIPIENT  = 'luigi.delia@grossonapoletano.com';
+const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const ICONS = { 'GASTO ADICIONAL':'🚕', 'DIETA':'🍽️', 'KM':'🚗', '':'💳' };
+const TAGS  = { 'GASTO ADICIONAL':'tag-ga', 'DIETA':'tag-d', 'KM':'tag-km', '':'tag-ga' };
+
+// ── STATE ──
+let gastos = JSON.parse(localStorage.getItem('gn_gastos') || '[]');
+let currentFile = null;
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  const hoy = new Date();
+  document.getElementById('fFecha').value = hoy.toISOString().split('T')[0];
+  document.getElementById('expMes').value = MESES[hoy.getMonth()];
+  document.getElementById('expAnio').value = hoy.getFullYear();
+
+  const dia = hoy.getDate();
+  const q = dia <= 15 ? '1ª quincena' : '2ª quincena';
+  const mes = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][hoy.getMonth()];
+  document.getElementById('periodoLabel').textContent = `${q} de ${mes} ${hoy.getFullYear()}`;
+
+  render();
+  updateTotals();
+});
+
+// ── TABS ──
+function goTab(i) {
+  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('on', i===j));
+  document.querySelectorAll('.view').forEach((v,j) => v.classList.toggle('on', i===j));
+  if (i === 2) updateTotals();
+}
+
+// ── FORM ──
+function toggleKm() {
+  document.getElementById('kmWrap').style.display =
+    document.getElementById('fTipo').value === 'KM' ? 'block' : 'none';
+}
+
+function resetForm() {
+  ['fDesc','fImporte','fKm','fLink'].forEach(id => document.getElementById(id).value = '');
+  ['fTipo','fImp','fDim'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fInicio').value = 'NO';
+  document.getElementById('fFecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ticketImg').style.display = 'none';
+  document.getElementById('ticketStatus').className = 'ticket-status';
+  document.getElementById('ticketStatus').textContent = '';
+  document.getElementById('fileCamera').value = '';
+  document.getElementById('fileGallery').value = '';
+  currentFile = null;
+  toggleKm();
+}
+
+// ── TICKET ──
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  currentFile = file;
+
+  // Preview
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('ticketImg');
+    img.src = e.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+
+  // Upload to Drive via Apps Script
+  uploadToDrive(file);
+}
+
+function uploadToDrive(file) {
+  const st = document.getElementById('ticketStatus');
+  st.className = 'ticket-status uploading';
+  st.textContent = '⬆ Subiendo ticket a Drive...';
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const base64 = e.target.result.split(',')[1];
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'uploadFile',
+          fileData: base64,
+          mimeType: file.type,
+          fileName: `ticket_${Date.now()}_${file.name}`
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        st.className = 'ticket-status done';
+        st.textContent = '✅ Ticket subido a Drive';
+        document.getElementById('fLink').value = data.link;
+        toast('Ticket subido ✓', 'ok');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch(err) {
+      st.className = 'ticket-status error';
+      st.textContent = '❌ Error al subir. Pega el link manualmente.';
+      toast('Error subiendo ticket', 'err');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── ADD GASTO ──
+function addGasto() {
+  const fecha   = document.getElementById('fFecha').value;
+  const importe = parseFloat(document.getElementById('fImporte').value);
+  const desc    = document.getElementById('fDesc').value.trim();
+  const tipo    = document.getElementById('fTipo').value;
+  const km      = document.getElementById('fKm').value || '';
+  const imp     = document.getElementById('fImp').value;
+  const dim     = document.getElementById('fDim').value;
+  const inicio  = document.getElementById('fInicio').value;
+  const link    = document.getElementById('fLink').value.trim();
+
+  if (!fecha || !desc || isNaN(importe) || importe <= 0) {
+    toast('Completa fecha, descripción e importe', 'err'); return;
+  }
+
+  gastos.push({ id: Date.now(), fecha, tipo, desc, importe, km, imp, dim, inicio, link });
+  save();
+  render();
+  updateTotals();
+  resetForm();
+  toast('Gasto añadido ✓', 'ok');
+  goTab(1);
+}
+
+function deleteGasto(id) {
+  gastos = gastos.filter(g => g.id !== id);
+  save();
+  render();
+  updateTotals();
+  toast('Eliminado');
+}
+
+function save() { localStorage.setItem('gn_gastos', JSON.stringify(gastos)); }
+
+// ── RENDER ──
+function render() {
+  const el = document.getElementById('gastosList');
+  if (!gastos.length) {
+    el.innerHTML = `<div class="empty"><div class="ei">🧾</div><div class="et">Sin gastos aún</div><div class="es">Añade gastos desde la pestaña Nuevo</div></div>`;
+    return;
+  }
+  const sorted = [...gastos].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+  el.innerHTML = sorted.map(g => `
+    <div class="gasto-item">
+      <div class="gi-icon">${ICONS[g.tipo]||'💳'}</div>
+      <div class="gi-body">
+        <div class="gi-desc">${g.desc}</div>
+        <div class="gi-meta">${fmtDate(g.fecha)} · ${g.imp||'Sin imputar'}</div>
+        <span class="gi-tag ${TAGS[g.tipo]||'tag-ga'}">${g.tipo||'Otro'}</span>
+      </div>
+      <div class="gi-right">
+        <div class="gi-amount">${fmtEur(g.importe)}</div>
+        <div class="gi-del" onclick="deleteGasto(${g.id})">✕</div>
+      </div>
+    </div>`).join('');
+}
+
+function updateTotals() {
+  const total  = gastos.reduce((s,g) => s+g.importe, 0);
+  const dietas = gastos.filter(g=>g.tipo==='DIETA').reduce((s,g)=>s+g.importe,0);
+  const otros  = gastos.filter(g=>g.tipo!=='DIETA').reduce((s,g)=>s+g.importe,0);
+  document.getElementById('hdrTotal').textContent  = fmtEur(total);
+  document.getElementById('resTotal').textContent  = fmtEur(total);
+  document.getElementById('resCount').textContent  = gastos.length;
+  document.getElementById('resDietas').textContent = fmtEur(dietas);
+  document.getElementById('resOtros').textContent  = fmtEur(otros);
+}
+
+// ── EXCEL ──
+function buildXlsx() {
+  const mes  = document.getElementById('expMes').value;
+  const anio = document.getElementById('expAnio').value;
+  const total = gastos.reduce((s,g)=>s+g.importe,0);
+
+  const rows = [
+    ['HOJA DE GASTOS','','','','','','','','','','','','',''],
+    ['','','','','','','','','','','','','',''],
+    ['CÓDIGO GN','','','','GN1122','','','','','','','','',''],
+    ['NOMBRE Y APELLIDOS','','','','LUIGI DELIA','','','','','','','','',''],
+    ['AÑO','','','',anio,'','','','','','','','',''],
+    ['MES ','','','',mes,'','','','','','','','',''],
+    ['','','','','','','','','','','','','',''],
+    ['GASTOS','','','','','','','','','','','','',''],
+    ['','','','','','','','','','','','','',''],
+    ['','','','','','','','','','','','','',''],
+    ['FECHA','TIPO DE GASTO','','','','','DESCRIPCIÓN','KM','IMPORTE','IMPUTACIÓN DEPARTAMENTO/ LOCAL','DIMENSIÓN','GASTO DE INICIO','CONCEPTO','LINK TICKET'],
+  ];
+
+  gastos.forEach(g => rows.push([
+    g.fecha, g.tipo||'', '','','','',
+    g.desc, g.km||'', g.importe,
+    g.imp||'', g.dim||'', g.inicio||'NO', '', g.link||''
+  ]));
+
+  // Pad to at least 15 data rows
+  while (rows.length < 11 + 15) rows.push(['','','','','','','','','','','','','','']);
+  rows.push(['','TOTAL HOJA DE GASTOS','','','','','','',total,'','','','','']);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:14},{wch:18},{wch:4},{wch:4},{wch:4},{wch:4},{wch:30},{wch:6},{wch:10},{wch:28},{wch:22},{wch:15},{wch:12},{wch:50}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `${mes} ${anio}`);
+  return { wb, mes, anio };
+}
+
+function descargarExcel() {
+  if (!gastos.length) { toast('Sin gastos para exportar', 'err'); return; }
+  const { wb, mes, anio } = buildXlsx();
+  XLSX.writeFile(wb, `SC___Luigi_Delia_${mes}_${anio}.xlsx`);
+  toast('Excel descargado ✓', 'ok');
+}
+
+// ── EMAIL ──
+function mostrarModalEnvio() {
+  if (!gastos.length) { toast('Sin gastos para enviar', 'err'); return; }
+  document.getElementById('modalBg').classList.add('on');
+}
+
+function cerrarModal(e) {
+  if (!e || e.target === document.getElementById('modalBg')) {
+    document.getElementById('modalBg').classList.remove('on');
+  }
+}
+
+async function enviarCorreo() {
+  const btn   = document.getElementById('btnEnviar');
+  const spin  = document.getElementById('spinEnvio');
+  const lbl   = document.getElementById('lblEnviar');
+  const mes   = document.getElementById('expMes').value;
+  const anio  = document.getElementById('expAnio').value;
+  const total = gastos.reduce((s,g)=>s+g.importe,0);
+
+  btn.disabled = true;
+  spin.style.display = 'block';
+  lbl.textContent = 'Enviando...';
+
+  const { wb } = buildXlsx();
+  const b64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'sendEmail',
+        to: RECIPIENT,
+        subject: `Hoja de Gastos · Luigi Delia · ${mes} ${anio}`,
+        body: `Hola,\n\nAdjunto hoja de gastos de ${mes} ${anio}.\n\nTotal: ${fmtEur(total)}\nRegistros: ${gastos.length}\n\nSaludos,\nLuigi Delia · GN1122`,
+        fileData: b64,
+        fileName: `SC___Luigi_Delia_${mes}_${anio}.xlsx`
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('Correo enviado ✓', 'ok');
+      document.getElementById('modalBg').classList.remove('on');
+    } else throw new Error();
+  } catch {
+    toast('Error al enviar', 'err');
+  } finally {
+    btn.disabled = false;
+    spin.style.display = 'none';
+    lbl.textContent = '✉️ Enviar ahora';
+  }
+}
+
+function borrarTodo() {
+  if (!confirm('¿Borrar todos los gastos?')) return;
+  gastos = [];
+  save();
+  render();
+  updateTotals();
+  toast('Gastos borrados');
+}
+
+// ── UTILS ──
+function fmtEur(n) { return n.toFixed(2).replace('.',',') + ' €'; }
+function fmtDate(d) { if (!d) return ''; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; }
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'on ' + type;
+  clearTimeout(window._t);
+  window._t = setTimeout(() => t.className = '', 2500);
+}
+</script>
+</body>
+</html>
